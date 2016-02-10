@@ -13,13 +13,13 @@
       </p>
     {/if}
     
-    {if $smarty.get.message == 2}
-      <p> Sorry, we are unable to proceed your transaction with installment.<br>
-        Transaction with installment is only allowed for transaction amount above Rp 500.000 <br><br>
+    {if $smarty.get.message >= 2}
+      <p> <strong>Sorry, we are unable to proceed your transaction with installment.</strong><br>
+        Transaction with installment is only allowed for transaction with minimum amount of IDR <strong>{$smarty.get.message}</strong> <br><br>
       </p>
     {/if}
 
-    <p><a href="{$smarty.get.redirlink}">Click here to continue with full payment</a></p>
+    <a class="exclusive_large" href="{$smarty.get.redirlink}">Click here to continue with credit card full payment</a>
 
   </div>
 </body>

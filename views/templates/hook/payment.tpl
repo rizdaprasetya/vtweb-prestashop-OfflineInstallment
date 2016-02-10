@@ -22,6 +22,17 @@
   </div>
 </div>
 
+{else if $product == 'below_threshold'}
+<div class="row">
+  <div class="col-xs-12 col-md-6">
+      <p class="payment_module">
+        <a class="bankwire">
+          <img src="{$this_path}Veritrans.png" alt="{l s='Pay via Veritrans' mod='veritransinstallment'}" height="30px"/><br/><span>*Product doesn't support {$displayname} payment, total price is below minimum amount of IDR {$amount_threshold}.</span>
+        </a>
+      </p>
+  </div>
+</div>
+
 {else}
 <div class="row">
   <div class="col-xs-12 col-md-6">

@@ -57,11 +57,12 @@ class VeritransInstallment extends PaymentModule
 			'VI_SANITIZED',
 			'VI_ENABLE_INSTALLMENT',
 			// 'VI_ENABLED_BNI_INSTALLMENT',
-			'VI_ENABLED_OFFLINE_INSTALLMENT',
+			// 'VI_ENABLED_OFFLINE_INSTALLMENT',
 			'VI_INSTALLMENTS_BNI',
 			'VI_INSTALLMENTS_TERM',
 			'VI_BIN_FILTER',
-			'VI_DISPLAY_NAME'
+			'VI_DISPLAY_NAME',
+			'VI_AMOUNT_THRESHOLD'
 			);
 
 		foreach (array('BNI', 'MANDIRI') as $bank) {
@@ -83,10 +84,11 @@ class VeritransInstallment extends PaymentModule
 		else
 			Configuration::set('VI_KURS', 10000);
 
-		if (isset($config['VI_DISPLAY_NAME']))
-			$this->veritrans_kurs = $config['VI_DISPLAY_NAME'];
-		else
+		if (!isset($config['VI_DISPLAY_NAME']))
 			Configuration::set('VI_KURS', "Credit Card Installment");
+
+		if (!isset($config['VI_AMOUNT_THRESHOLD']) || strlen($config['VI_AMOUNT_THRESHOLD']) < 1)
+			Configuration::set('VI_AMOUNT_THRESHOLD', "500000");
 		
 		Configuration::set('VI_API_VERSION', 2);
 		Configuration::set('VI_PAYMENT_TYPE','vtweb');
@@ -604,25 +606,25 @@ class VeritransInstallment extends PaymentModule
 					// 	//'class' => 'v1_vtweb_settings sensitive'\
 					// 	'class' => 'VT_INSTALLMENTS_BNI'	
 					// 	),
-					array(
-						'type' => (version_compare(Configuration::get('PS_VERSION_DB'), '1.6') == -1)?'radio':'switch',
-						'label' => 'Offline Installment',
-						'name' => 'VI_ENABLED_OFFLINE_INSTALLMENT',						
-						'is_bool' => true,
-						'values' => array(
-							array(
-								'id' => 'VI_ENABLED_OFFLINE_INSTALLMENT_on',
-								'value' => 1,
-								'label' => 'Yes'
-								),
-							array(
-								'id' => 'VI_ENABLED_OFFLINE_INSTALLMENT_off',
-								'value' => 0,
-								'label' => 'No'
-								)
-							),
-						//'class' => 'VI_ENABLED_OFFLINE_INSTALLMENT'
-						),
+					// array(
+					// 	'type' => (version_compare(Configuration::get('PS_VERSION_DB'), '1.6') == -1)?'radio':'switch',
+					// 	'label' => 'Offline Installment',
+					// 	'name' => 'VI_ENABLED_OFFLINE_INSTALLMENT',						
+					// 	'is_bool' => true,
+					// 	'values' => array(
+					// 		array(
+					// 			'id' => 'VI_ENABLED_OFFLINE_INSTALLMENT_on',
+					// 			'value' => 1,
+					// 			'label' => 'Yes'
+					// 			),
+					// 		array(
+					// 			'id' => 'VI_ENABLED_OFFLINE_INSTALLMENT_off',
+					// 			'value' => 0,
+					// 			'label' => 'No'
+					// 			)
+					// 		),
+					// 	//'class' => 'VI_ENABLED_OFFLINE_INSTALLMENT'
+					// 	),
 					array(
 						'type' => 'text',
 						'label' => 'Offline Installment terms',
@@ -647,6 +649,15 @@ class VeritransInstallment extends PaymentModule
 						'desc' => 'Customize payment button title that will be displayed to your customer when they checkout.  e.g: Cicilan CIMB, Cicilan Permata, etc. Leave blank for default title.',
 						//'class' => 'v1_vtweb_settings sensitive'\
 						'class' => 'VI_DISPLAY_NAME'	
+						),
+					array(
+						'type' => 'text',
+						'label' => 'Minimum Transaction Amount',
+						'required' => true,	
+						'name' => 'VI_AMOUNT_THRESHOLD',
+						'desc' => 'Minimum transaction amount that allowed to be paid using installment payment option (amount in IDR). e.g: 500000',
+						//'class' => 'v1_vtweb_settings sensitive'\
+						'class' => 'VI_AMOUNT_THRESHOLD'	
 						),							
 				/*	array(
 						'type' => 'checkbox',
@@ -964,8 +975,14 @@ class VeritransInstallment extends PaymentModule
 		}
 		if (Configuration::get('VI_ENABLE_INSTALLMENT') == 'all_product' /*&& $num_product == 1*/) 
 			$product = 'installment';
-		if (Configuration::get('VI_ENABLE_INSTALLMENT') == 'off' || !Configuration::get('VI_ENABLED_OFFLINE_INSTALLMENT')) 
+		if (Configuration::get('VI_ENABLE_INSTALLMENT') == 'off' /*|| !Configuration::get('VI_ENABLED_OFFLINE_INSTALLMENT')*/) 
 			$product = 'installment_off';
+
+		// Compare cart total amount to threshold, if below threshold display payment unavailable
+		// *note: NOT SAFE for currency other than IDR
+		if($cart->getOrderTotal() <= Configuration::get('VI_AMOUNT_THRESHOLD')){
+			$product = 'below_threshold';
+		}
 
 		// Check if display title form is filled by user, else default name will be used
 		$displayname = Configuration::get('VI_DISPLAY_NAME');
@@ -976,6 +993,7 @@ class VeritransInstallment extends PaymentModule
 		$this->context->smarty->assign(array(
 			'displayname' => $displayname,
 			'product'=> $product,
+			'amount_threshold' => Configuration::get('VI_AMOUNT_THRESHOLD'),
 			'cart' => $cart,
 			'this_path' => $this->_path,
 			'this_path_ssl' => Tools::getShopDomainSsl(true, true).__PS_BASE_URI__.'modules/'.$this->name.'/'
@@ -1259,7 +1277,8 @@ class VeritransInstallment extends PaymentModule
 		}	
 		
 		// $isBniInstallment = Configuration::get('VI_ENABLED_BNI_INSTALLMENT') == 1;
-		$isOfflineInstallment = Configuration::get('VI_ENABLED_OFFLINE_INSTALLMENT') == 1;
+		// $isOfflineInstallment = Configuration::get('VI_ENABLED_OFFLINE_INSTALLMENT') == 1;
+		$isOfflineInstallment = true;
 		$isBniInstallment = false;
 		$warning_redirect = false;
 		$fullPayment = true;
@@ -1357,9 +1376,9 @@ class VeritransInstallment extends PaymentModule
 			'customer_details' => $params_customer_details
 			);
 		
-		if ($gross_amount < 500000){
+		if ($gross_amount < Configuration::get('VI_AMOUNT_THRESHOLD')){
 			$warning_redirect = true;
-			$keys['message'] = 2;
+			$keys['message'] = Configuration::get('VI_AMOUNT_THRESHOLD');
 		}
 
 		if( !$warning_redirect && 
