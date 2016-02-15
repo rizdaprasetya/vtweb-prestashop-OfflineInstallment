@@ -14,6 +14,6 @@ elseif (!Customer::getAddressesTotalById((int)($cookie->id_customer)))
   Tools::redirect('address.php?back=order.php?step=1');
 
 $veritransinstallment = new VeritransInstallment();
-echo $veritransinstallment->execInstallmentment($cart);
+echo $veritransinstallment->execPayment($cart);
 
 include_once($root_dir.'/footer.php');
