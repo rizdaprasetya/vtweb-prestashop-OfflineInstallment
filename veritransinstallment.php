@@ -85,7 +85,7 @@ class VeritransInstallment extends PaymentModule
 			Configuration::set('VI_KURS', 10000);
 
 		if (!isset($config['VI_DISPLAY_NAME']))
-			Configuration::set('VI_KURS', "Credit Card Installment");
+			Configuration::set('VI_DISPLAY_NAME', "Credit Card Installment");
 
 		if (!isset($config['VI_AMOUNT_THRESHOLD']) || strlen($config['VI_AMOUNT_THRESHOLD']) < 1)
 			Configuration::set('VI_AMOUNT_THRESHOLD', "500000");
