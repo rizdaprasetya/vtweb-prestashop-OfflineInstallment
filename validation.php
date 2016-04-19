@@ -24,7 +24,7 @@ $veritransInstallment = new VeritransInstallment();
 $keys = $veritransInstallment->execValidation($cart);
 
 $veritrans_api_version = Configuration::get('VI_API_VERSION');
-$veritrans_installmentment_method = Configuration::get('VI_PAYMENT_TYPE');
+$veritrans_payment_method = Configuration::get('VI_PAYMENT_TYPE');
 
 if ($keys['errors'])
 {
